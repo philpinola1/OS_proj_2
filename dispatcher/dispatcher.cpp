@@ -82,6 +82,9 @@ int dispatcher::processInterrupt(int interrupt) {
 int dispatcher::doTick() {
 	int returnval;
 
+
+	// **********NUKE THIS NEXT TIME FAM ******************
+
 	PCB currentJob = dispatcher::getCurrentJob();
 
 	if (runningPCB.cpu_time != UNINITIALIZED &&
