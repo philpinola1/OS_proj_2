@@ -25,7 +25,7 @@ void dispatcher::init() {
 
 //used for testing, return a copy of runningPCB
 PCB dispatcher::getCurrentJob() {
-	runningPCB = getNext();
+	//runningPCB = getNext();
 	return runningPCB;
 
 }
@@ -43,7 +43,7 @@ void dispatcher::addJob(PCB &myPCB) {
 int dispatcher::processInterrupt(int interrupt) {
 
 	if (interrupt == SWITCH_PROCESS) { 		//5 = timeslice interrupt
-		if (!readyQ.empty()) {
+		if (!readyQ.empty() && size() > 1 ) {
 			PCB tmp = readyQ.front(); //front???
 			readyQ.push(runningPCB);
 			runningPCB = tmp; 	//should probably be a deep copy??
@@ -80,90 +80,67 @@ int dispatcher::processInterrupt(int interrupt) {
 
 //see flowchart
 int dispatcher::doTick() {
-	int returnval;
+	int returnval = 0;
 
 
-	// **********NUKE THIS NEXT TIME FAM ******************
+	PCB tmpPCB = readyQ.front();
 
-	PCB currentJob = dispatcher::getCurrentJob();
+	runningPCB = &tmpPCB;
+
 
 	if (runningPCB.cpu_time != UNINITIALIZED &&
-			runningPCB.io_time != UNINITIALIZED &&
-			runningPCB.process_number != UNINITIALIZED &&
-			runningPCB.start_time != UNINITIALIZED &&
-			runningPCB.start_time >= 0 &&
-			runningPCB.cpu_time > 0) {//CHECK to see if there is a running PCB
+		runningPCB.io_time != UNINITIALIZED &&
+		runningPCB.process_number != UNINITIALIZED &&
+		runningPCB.start_time != UNINITIALIZED) { 	// is there a runningPCB? == YES
 
 		runningPCB.cpu_time -= 1;	//if running, decrement cpu_time by 1 --- indicate work done
-	}
-	else { 	//if no runningPCB, check readyQ
 
-		if (readyQ.empty()) {
-
-			if (blockedQ.empty()) { //both readyQ and blockedQ are empty
-				return NO_JOBS;
+		if (runningPCB.cpu_time == 0) { // is current job finished? == YES
+			if (runningPCB.io_time == 1) { // does runningPCB make a blocking IO call? == YES
+				blockedQ.push(runningPCB);
+				returnval = PCB_ADDED_TO_BLOCKED_QUEUE;
 			}
-			else { //just readyQ is empty
-				return BLOCKED_JOBS;
+			else if (runningPCB.io_time == 0){	// does runningPCB make a blocking IO call? == NO
+				returnval = PCB_FINISHED;
+			}
+
+			else { // does runningPCB make a blocking IO call? == neither 1 or 0
+				return FAIL;
 			}
 		}
-		//hi
-		else {		//if the readyQ isn't empty, LOAD next job into runningPCB
-			PCB tmp2 = getNext();
-			runningPCB = tmp2;
-			return PCB_MOVED_FROM_READY_TO_RUNNING;
-		}
 
+		else {	// is current job finished? == NO
+			return PCB_CPUTIME_DECREMENTED;
+		}
 	}
 
-	if (runningPCB.cpu_time == 0) {
-		if (runningPCB.io_time == 1) { //process makes a blocking call
-			blockedQ.push(runningPCB);
-			returnval = PCB_ADDED_TO_BLOCKED_QUEUE;
-		}
-		else {							//process doesn't make a blocking call
-			returnval = PCB_FINISHED;
-		}
-	}
-	else {
-		return PCB_CPUTIME_DECREMENTED;
+	else if (runningPCB.cpu_time == UNINITIALIZED &&
+			runningPCB.io_time == UNINITIALIZED &&
+			runningPCB.process_number == UNINITIALIZED &&
+			runningPCB.start_time == UNINITIALIZED) { // is there a running PCB? == NO
+
+		if (readyQ.empty()) {		//is the readyQ empty? == YES
+
+					if (blockedQ.empty()) { //both readyQ and blockedQ are empty
+						return NO_JOBS;
+					}
+					else { //just readyQ is empty
+						return BLOCKED_JOBS;
+					}
+				}
+				else {			//is the readyQ empty? == NO
+					PCB tmp2 = getNext();
+					runningPCB = tmp2; //load job into runningPCB
+					return PCB_MOVED_FROM_READY_TO_RUNNING;
+				}
 	}
 
 	//unload or mark runningPCB as invalid
-	runningPCB.cpu_time = 0;
-	runningPCB.io_time = 0;
-	runningPCB.process_number = 0;
-	runningPCB.start_time = 0;
+	runningPCB.cpu_time = UNINITIALIZED;
+	runningPCB.io_time = UNINITIALIZED;
+	runningPCB.process_number = UNINITIALIZED;
+	runningPCB.start_time = UNINITIALIZED;
 
 	return returnval;
 }
-
-	//	if (runningPCB == empty) {
-	//		if (readyQ == empty) {
-	//			return NO_JOBS;
-	//		}
-	//		else if (readyQ != empty) {
-	//			runningPCB.start = readyQ[i];
-	//			return PCB_MOVED_FROM_READY_TO_RUNNING;
-	//		}
-	//	}
-	//	else if (runningPCB != empty) {
-	//		runningPCBs->cpu_time --;
-	//	}
-	//
-	//	if (runningPCB.cpu_time == 0) {
-	//		if (runningPCB has blockingIOCall == true) {
-	//			blocked_Q.pushBack(runningPCB[i]);
-	//			returnval = PCB_ADDED_TO_BLOCKED_QUEUE;
-	//		}
-	//		else if (runningPCB has blockingIOCall == false) {
-	//			returnval = PCB_FINISHED;
-	//		}
-	//	}
-	//	else if (runningPCB.cpu_time != 0) {
-	//		return PCB_CPUTIME_DECREMENTED;
-	//	}
-	//
-	//	//unblock/mark runningPCB as invalid
-	//	return returnval;
 
