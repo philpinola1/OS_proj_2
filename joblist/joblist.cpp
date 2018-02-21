@@ -14,18 +14,19 @@ using namespace std;
 //assumme the worst
 bool joblistHasJobs = false;
 
-std::vector<PCB> myVec;
+//std::vector<PCB> myVec;
 
 
 //loads data from filename and sorts
 //it by job start time
 int joblist::init(const char* filename) {
-		return loadData(filename);
+	int retval = loadData(filename);
+	sortData(START_TIME);
+	return retval;
 }
 
 //gets next job from file_IO
 PCB joblist::getNextJob() {
-
 	return getNext();
 }
 
@@ -35,6 +36,35 @@ PCB joblist::getNextJob() {
 //If its time to load return ADD_JOB_TO_DISPATCHER
 //if not return WAITING_TO_ADD_JOB_TO_DISPATCHER
 int joblist::doTick(int currentTick) {
+
+//	if (size() == 0) {
+//		return NO_JOBS;
+//	}
+//
+//	else if (size() > 0) {
+//
+//		if (size() > 1) {
+//
+//		}
+//	}
+//
+//	else {
+//		return FAIL;
+//	}
+//	int sT = peekNextStartTime();
+//
+//
+//	for (int i = 0; i < size(); i++) {
+//		if (currentTick == peekNextStartTime()) {
+//			return ADD_JOB_TO_DISPATCHER;
+//		}
+//	}
+//
+//
+//	//else{
+//		return WAITING_TO_ADD_JOB_TO_DISPATCHER;
+//	//}
+
 
 	if (size() == 0) {
 		return NO_JOBS;
@@ -49,7 +79,7 @@ int joblist::doTick(int currentTick) {
 		return WAITING_TO_ADD_JOB_TO_DISPATCHER;
 	}
 
-	return ADD_JOB_TO_DISPATCHER;
+return ADD_JOB_TO_DISPATCHER;
 
 }
 

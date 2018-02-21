@@ -41,7 +41,7 @@ void dispatcher::addJob(PCB &myPCB) {
 int dispatcher::processInterrupt(int interrupt) {
 
 	if (interrupt == SWITCH_PROCESS) { 		//5 = timeslice interrupt
-		if (!readyQ.empty() && size() > 1 ) {
+		if (!readyQ.empty()) {
 			PCB tmp = readyQ.front(); //front???
 			readyQ.push(runningPCB);
 			runningPCB = tmp; 	//should probably be a deep copy??
@@ -87,14 +87,14 @@ int dispatcher::doTick() {
 
 		runningPCB.cpu_time -= 1;	//if running, decrement cpu_time by 1 --- indicate work done
 
-		if (runningPCB.cpu_time == 0) { // is current job finished? == YES
+		if (runningPCB.cpu_time <= 0) { // is current job finished? == YES
 			if (runningPCB.io_time == 1) { // does runningPCB make a blocking IO call? == YES
 				runningPCB.io_time = 0;		//set io_time to 0
 				blockedQ.push(runningPCB);  //then move to blockedQ
 				returnval = PCB_ADDED_TO_BLOCKED_QUEUE;
 			}
 			else if (runningPCB.io_time == 0){	// does runningPCB make a blocking IO call? == NO
-				returnval = PCB_FINISHED;
+				returnval = PCB_FINISHED; //HERE, SHOULD POP DEAD PROCESS???
 			}
 
 			else { // does runningPCB make a blocking IO call? == neither 1 or 0
@@ -122,10 +122,36 @@ int dispatcher::doTick() {
 					}
 				}
 				else {			//is the readyQ empty? == NO
-					//PCB tmp2 = getNext();
-					//PCB tmp2 = readyQ.front();
-					runningPCB = readyQ.front(); //load job into runningPCB
-					readyQ.pop();
+					//***********Do some logic to see which job deserves priority!!
+
+//					runningPCB = readyQ.front(); //load job into runningPCB
+//					readyQ.pop();
+					//return PCB_MOVED_FROM_READY_TO_RUNNING;
+
+
+					bool flag = true;
+					const int rQSize = readyQ.size();
+					if (rQSize > 1) {
+						while (flag) {
+							runningPCB = readyQ.front(); //load job into runningPCB
+
+							if (runningPCB.cpu_time == 0) {
+								blockedQ.push(runningPCB); //dont think you can go straight to blockedQ
+															//that decision might have to be made UP there while
+															//it is the current runningPCB
+							}
+							else if (runningPCB.cpu_time > 0) {
+								flag = false;
+							}
+							readyQ.pop();
+						}
+					}
+
+					else if (rQSize == 1) {
+						runningPCB = readyQ.front(); //load job into runningPCB
+						readyQ.pop();
+					}
+
 					return PCB_MOVED_FROM_READY_TO_RUNNING;
 				}
 	}
