@@ -25,9 +25,7 @@ void dispatcher::init() {
 
 //used for testing, return a copy of runningPCB
 PCB dispatcher::getCurrentJob() {
-	//runningPCB = getNext();
 	return runningPCB;
-
 }
 
 //add a job to the ready queue
@@ -82,12 +80,6 @@ int dispatcher::processInterrupt(int interrupt) {
 int dispatcher::doTick() {
 	int returnval = 0;
 
-
-	PCB tmpPCB = readyQ.front();
-
-	runningPCB = &tmpPCB;
-
-
 	if (runningPCB.cpu_time != UNINITIALIZED &&
 		runningPCB.io_time != UNINITIALIZED &&
 		runningPCB.process_number != UNINITIALIZED &&
@@ -97,7 +89,8 @@ int dispatcher::doTick() {
 
 		if (runningPCB.cpu_time == 0) { // is current job finished? == YES
 			if (runningPCB.io_time == 1) { // does runningPCB make a blocking IO call? == YES
-				blockedQ.push(runningPCB);
+				runningPCB.io_time = 0;		//set io_time to 0
+				blockedQ.push(runningPCB);  //then move to blockedQ
 				returnval = PCB_ADDED_TO_BLOCKED_QUEUE;
 			}
 			else if (runningPCB.io_time == 0){	// does runningPCB make a blocking IO call? == NO
@@ -129,8 +122,10 @@ int dispatcher::doTick() {
 					}
 				}
 				else {			//is the readyQ empty? == NO
-					PCB tmp2 = getNext();
-					runningPCB = tmp2; //load job into runningPCB
+					//PCB tmp2 = getNext();
+					//PCB tmp2 = readyQ.front();
+					runningPCB = readyQ.front(); //load job into runningPCB
+					readyQ.pop();
 					return PCB_MOVED_FROM_READY_TO_RUNNING;
 				}
 	}
